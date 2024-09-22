@@ -52,5 +52,5 @@ roslaunch turtlebot3_navigation move_base.launch
 - **Shell #4** : Frontier exploration
 
 ```bash
-roslaunch frontier_exploration explore_costmap.launch
+roslaunch frontier explore.launch
 ```
