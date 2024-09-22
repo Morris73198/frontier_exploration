@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="frontier" type="explore_edition2.py" respawn="false" name="explore" output="screen">
+        <rosparam command="load" file="$(find frontier)/config/params.yaml"/>
+        <remap from="costmap" to="/map"/>
+    </node>
+</launch>
