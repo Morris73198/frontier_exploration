@@ -166,6 +166,7 @@ include_directories(
 catkin_install_python(PROGRAMS
   scripts/costmap_client.py
   scripts/frontier_search.py
+  scripts/explore.py
   scripts/explore_edition1.py
   scripts/explore_edition2.py
   scripts/explore_edition3.py
