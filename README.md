@@ -58,8 +58,19 @@ roslaunch frontier explore.launch
 
 ## Demo using Turtlebot3 (Two Robot exploration)
 
-- **Shell #2** : Gazebo + RViz
+- **Shell #1** : Gazebo + RViz
 
 ```bash
-roslaunch 
+roslaunch ros_multi_tb3 2_tb3_house.launch
+```
+- **Shell #2** : tb3_1 exploration
+
+```bash
+roslaunch frontier explore_py1.launch
+```
+
+- **Shell #3** : tb3_2 exploration
+
+```bash
+roslaunch frontier explore_py2.launch
 ```
