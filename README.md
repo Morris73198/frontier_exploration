@@ -54,3 +54,12 @@ roslaunch turtlebot3_navigation move_base.launch
 ```bash
 roslaunch frontier explore.launch
 ```
+
+
+## Demo using Turtlebot3 (Two Robot exploration)
+
+- **Shell #2** : Gazebo + RViz
+
+```bash
+roslaunch 
+```
