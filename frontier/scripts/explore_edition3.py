@@ -212,6 +212,8 @@ class FrontierSearch:
     def distance(self, p1, p2):
         return np.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2)
 
+
+
 class Explore:
     def __init__(self):
         rospy.init_node('explore')
@@ -228,10 +230,13 @@ class Explore:
         self.gain_scale = rospy.get_param('~gain_scale', 1.0)
         self.min_frontier_size = rospy.get_param('~minimum_frontier_size', 0.5)
         
-        self.marker_pub = rospy.Publisher('frontiers', MarkerArray, queue_size=10)
+        self.frontier_marker_pub = rospy.Publisher('frontier_markers', MarkerArray, queue_size=10)
+        self.goal_marker_pub = rospy.Publisher('goal_marker', Marker, queue_size=10)
         self.prev_goal = Point()
         self.last_progress = rospy.Time.now()
         self.frontier_blacklist = []
+        
+        self.current_goal = None
         
         self.timer = rospy.Timer(rospy.Duration(1.0 / self.planner_frequency), self.make_plan)
 
@@ -269,6 +274,8 @@ class Explore:
         goal.target_pose.header.stamp = rospy.Time.now()
         goal.target_pose.pose.position = frontier.centroid
         goal.target_pose.pose.orientation.w = 1.0
+        
+        self.current_goal = goal.target_pose.pose.position
 
         if self.prev_goal == goal.target_pose.pose.position:
             if frontier.min_distance < self.prev_distance:
@@ -283,6 +290,9 @@ class Explore:
             rospy.loginfo("No progress for too long, blacklisting current goal")
             self.frontier_blacklist.append(self.prev_goal)
             return
+
+        if self.visualize:
+            self.visualize_goal()
 
         self.move_base_client.send_goal(goal, done_cb=self.goal_reached_cb)
         rospy.loginfo(f"Sending goal: {goal.target_pose.pose.position.x:.2f}, {goal.target_pose.pose.position.y:.2f}")
@@ -301,7 +311,8 @@ class Explore:
         return False
 
     def visualize_frontiers(self, frontiers):
-        markers = MarkerArray()
+        f_markers = MarkerArray()
+        
         for i, f in enumerate(frontiers):
             m = Marker()
             m.header.frame_id = self.costmap_client.get_costmap().header.frame_id
@@ -313,12 +324,35 @@ class Explore:
             m.pose.orientation.w = 1.0
             m.scale.x = 0.1
             m.scale.y = 0.1
-            m.color.r = 1.0
+            m.color.r = 0.0
+            m.color.g = 0.0
+            m.color.b = 1.0  # Blue color
             m.color.a = 1.0
             m.points = f.points
-            markers.markers.append(m)
+            f_markers.markers.append(m)
+            
+        self.frontier_marker_pub.publish(f_markers)
 
-        self.marker_pub.publish(markers)
+    def visualize_goal(self):
+        if self.current_goal:
+            goal_marker = Marker()
+            goal_marker.header.frame_id = self.costmap_client.get_costmap().header.frame_id
+            goal_marker.header.stamp = rospy.Time.now()
+            goal_marker.ns = "current_goal"
+            goal_marker.id = 0  # Single goal, so we can use a fixed ID
+            goal_marker.type = Marker.SPHERE
+            goal_marker.action = Marker.ADD
+            goal_marker.pose.position = self.current_goal
+            goal_marker.pose.orientation.w = 1.0
+            goal_marker.scale.x = 0.3
+            goal_marker.scale.y = 0.3
+            goal_marker.scale.z = 0.3
+            goal_marker.color.r = 1.0  # Red color
+            goal_marker.color.g = 0.0
+            goal_marker.color.b = 0.0
+            goal_marker.color.a = 1.0
+            
+            self.goal_marker_pub.publish(goal_marker)
 
     def distance(self, p1, p2):
         return ((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2) ** 0.5
