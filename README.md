@@ -29,7 +29,7 @@ sudo apt-get install ros-noetic-dwa-local-planner
 ```
 
 
-## Demo using Turtlebot3
+## Demo using Turtlebot3 (Single Robot exploration)
 
 - **Shell #1** : Gazebo
 
