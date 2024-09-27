@@ -1,0 +1,117 @@
+<launch>
+  <!-- Arguments with default values -->
+  <arg name="model" default="waffle_pi" doc="model type [burger, waffle, waffle_pi]"/>
+  <arg name="configuration_basename" default="turtlebot3_lds_2d.lua"/>
+
+  <arg name="first_tb3" default="tb3_0"/>
+  <arg name="first_tb3_x_pos" default="-2.0"/>
+  <arg name="first_tb3_y_pos" default="-0.5"/>
+  <arg name="first_tb3_z_pos" default="0.0"/>
+  <arg name="first_tb3_yaw" default="0.0"/>
+
+  <arg name="second_tb3" default="tb3_1"/>
+  <arg name="second_tb3_x_pos" default="2.0"/>
+  <arg name="second_tb3_y_pos" default="0.5"/>
+  <arg name="second_tb3_z_pos" default="0.0"/>
+  <arg name="second_tb3_yaw" default="3.14"/>
+  <arg name="move_forward_only" default="false"/>
+
+  <!-- Gazebo -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_world.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <!-- First TurtleBot3 -->
+  <group ns="$(arg first_tb3)">
+    <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="$(arg first_tb3)" />
+    </node>
+
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model $(arg first_tb3) -x $(arg first_tb3_x_pos) -y $(arg first_tb3_y_pos) -z $(arg first_tb3_z_pos) -Y $(arg first_tb3_yaw) -param robot_description" />
+
+    <!-- SLAM: Gmapping -->
+    <node pkg="gmapping" type="slam_gmapping" name="turtlebot3_slam_gmapping" output="screen">
+      <param name="base_frame" value="$(arg first_tb3)/base_footprint"/>
+      <param name="odom_frame" value="$(arg first_tb3)/odom"/>
+      <param name="map_frame"  value="map"/>
+      <remap from="scan" to="$(arg first_tb3)/scan"/>
+      <remap from="map" to="map_$(arg first_tb3)"/>
+      <rosparam command="load" file="$(find turtlebot3_slam)/config/gmapping_params.yaml" />
+    </node>
+
+    <!-- Move Base -->
+    <include file="$(find turtlebot3_navigation)/launch/move_base.launch">
+      <arg name="model" value="$(arg model)" />
+      <arg name="move_forward_only" value="$(arg move_forward_only)"/>
+      <arg name="cmd_vel_topic" value="/$(arg first_tb3)/cmd_vel" />
+    </include>
+  </group>
+
+  <!-- Second TurtleBot3 -->
+  <group ns="$(arg second_tb3)">
+    <param name="robot_description" command="$(find xacro)/xacro $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="$(arg second_tb3)" />
+    </node>
+
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf" args="-urdf -model $(arg second_tb3) -x $(arg second_tb3_x_pos) -y $(arg second_tb3_y_pos) -z $(arg second_tb3_z_pos) -Y $(arg second_tb3_yaw) -param robot_description" />
+
+    <!-- SLAM: Gmapping -->
+    <node pkg="gmapping" type="slam_gmapping" name="turtlebot3_slam_gmapping" output="screen">
+      <param name="base_frame" value="$(arg second_tb3)/base_footprint"/>
+      <param name="odom_frame" value="$(arg second_tb3)/odom"/>
+      <param name="map_frame"  value="map"/>
+      <remap from="scan" to="$(arg second_tb3)/scan"/>
+      <remap from="map" to="map_$(arg second_tb3)"/>
+      <rosparam command="load" file="$(find turtlebot3_slam)/config/gmapping_params.yaml" />
+    </node>
+
+    <!-- Move Base -->
+    <include file="$(find turtlebot3_navigation)/launch/move_base.launch">
+      <arg name="model" value="$(arg model)" />
+      <arg name="move_forward_only" value="$(arg move_forward_only)"/>
+      <arg name="cmd_vel_topic" value="/$(arg second_tb3)/cmd_vel" />
+    </include>
+  </group>
+
+  <!-- Map merging -->
+  <node pkg="multirobot_map_merge" type="map_merge" respawn="false" name="map_merge" output="screen">
+    <param name="robot_map_topic" value="map"/>
+    <param name="robot_namespace" value="tb3"/>
+    <param name="merged_map_topic" value="map"/>
+    <param name="world_frame" value="map"/>
+    <param name="known_init_poses" value="true"/>
+    <param name="merging_rate" value="4.0"/>
+    <param name="discovery_rate" value="0.05"/>
+    <param name="estimation_rate" value="0.1"/>
+    <param name="estimation_confidence" value="1.0"/>
+    <param name="init_pose_x_1" value="$(arg first_tb3_x_pos)"/>
+    <param name="init_pose_y_1" value="$(arg first_tb3_y_pos)"/>
+    <param name="init_pose_z_1" value="$(arg first_tb3_z_pos)"/>
+    <param name="init_pose_yaw_1" value="$(arg first_tb3_yaw)"/>
+    <param name="init_pose_x_2" value="$(arg second_tb3_x_pos)"/>
+    <param name="init_pose_y_2" value="$(arg second_tb3_y_pos)"/>
+    <param name="init_pose_z_2" value="$(arg second_tb3_z_pos)"/>
+    <param name="init_pose_yaw_2" value="$(arg second_tb3_yaw)"/>
+  </node>
+
+  <!-- TF broadcasters -->
+  <node pkg="tf" type="static_transform_publisher" name="world_to_map_tf_broadcaster" args="0 0 0 0 0 0 world map 100" />
+  <node pkg="tf" type="static_transform_publisher" name="map_to_tb3_0_map_tf_broadcaster" args="0 0 0 0 0 0 map $(arg first_tb3)/map 100" />
+  <node pkg="tf" type="static_transform_publisher" name="map_to_tb3_1_map_tf_broadcaster" args="0 0 0 0 0 0 map $(arg second_tb3)/map 100" />
+
+  <!-- RViz -->
+  <node pkg="rviz" type="rviz" name="rviz" required="true"
+        args="-d $(find turtlebot3_navigation)/rviz/multi_turtlebot3_slam.rviz"/>
+
+</launch>
